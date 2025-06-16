@@ -283,6 +283,8 @@ lv_obj_t * btn = (lv_obj_t *) lv_event_get_target(e);
 
   if (plus == 2) { 
     
+    lv_obj_set_state(slider, LV_STATE_DISABLED, false);
+
     lance = false;
     plus = 0;
   }
@@ -337,134 +339,10 @@ static void slider_event_cb(lv_event_t * e)
 
 
 
-// variable lumino
-/*static void ledrog (lv_event_t * e)
-{
- lv_event_code_t bp = lv_event_get_code(e);
- lv_obj_t * btn = (lv_obj_t *) lv_event_get_target(e);
- 
- if (bp == LV_EVENT_CLICKED){
-  analogWrite(R, 250);    
-  analogWrite(G, 0);    
-  analogWrite(B, 0); 
- }
-}
-
-static void ledble (lv_event_t * e)
-{
- lv_event_code_t bp = lv_event_get_code(e);
- lv_obj_t * btn = (lv_obj_t *) lv_event_get_target(e);
- 
- if (bp == LV_EVENT_CLICKED){
-  analogWrite(R, 0);    
-  analogWrite(G, 0);    
-  analogWrite(B, 250); 
- }
-}
-
-static void ledver (lv_event_t * e)
-{
- lv_event_code_t bp = lv_event_get_code(e);
- lv_obj_t * btn = (lv_obj_t *) lv_event_get_target(e);
- 
- if (bp == LV_EVENT_CLICKED){
-  analogWrite(R, 0);    
-  analogWrite(G, 250);    
-  analogWrite(B, 0); 
- }
-}
-
-static void ledbla (lv_event_t * e)
-{
- lv_event_code_t bp = lv_event_get_code(e);
- lv_obj_t * btn = (lv_obj_t *) lv_event_get_target(e);
- 
- if (bp == LV_EVENT_CLICKED){
-  analogWrite(R, 200);    
-  analogWrite(G, 200);    
-  analogWrite(B, 200); 
- }
-}
-
-static void ledja (lv_event_t * e)
-{
- lv_event_code_t bp = lv_event_get_code(e);
- lv_obj_t * btn = (lv_obj_t *) lv_event_get_target(e);
- 
- if (bp == LV_EVENT_CLICKED){
-  analogWrite(R, 243);    
-  analogWrite(G, 250);    
-  analogWrite(B, 0); 
- }
-}
-
-static void ledor (lv_event_t * e)
-{
- lv_event_code_t bp = lv_event_get_code(e);
- lv_obj_t * btn = (lv_obj_t *) lv_event_get_target(e);
- 
- if (bp == LV_EVENT_CLICKED){
-  analogWrite(R, 250);    
-  analogWrite(G, 128);    
-  analogWrite(B, 0); 
- }
-}
-
-static void ledmar (lv_event_t * e)
-{
- lv_event_code_t bp = lv_event_get_code(e);
- lv_obj_t * btn = (lv_obj_t *) lv_event_get_target(e);
- 
- if (bp == LV_EVENT_CLICKED){
-  analogWrite(R, 115);    
-  analogWrite(G, 53);    
-  analogWrite(B, 7); 
- }
-}
-
-static void ledvio (lv_event_t * e)
-{
- lv_event_code_t bp = lv_event_get_code(e);
- lv_obj_t * btn = (lv_obj_t *) lv_event_get_target(e);
- 
- if (bp == LV_EVENT_CLICKED){
-  analogWrite(R, 139);    
-  analogWrite(G, 0);    
-  analogWrite(B, 250); 
- }
-}
 
 
-
-
-static void ledros (lv_event_t * e)
-{
- lv_event_code_t bp = lv_event_get_code(e);
- lv_obj_t * btn = (lv_obj_t *) lv_event_get_target(e);
- 
- if (bp == LV_EVENT_CLICKED){
-  analogWrite(R, 250);    
-  analogWrite(G, 0);    
-  analogWrite(B, 232); 
- }
-}*/
-
-lv_obj_t * btnrog = NULL;
-lv_obj_t * btnble = NULL;
-lv_obj_t * btnver = NULL;
-lv_obj_t * btnbla = NULL;
-lv_obj_t * btnja = NULL;
-lv_obj_t * btnor = NULL;
-lv_obj_t * btnmar = NULL;
-lv_obj_t * btnros = NULL;
-lv_obj_t * btnmov = NULL;
-lv_obj_t * btnvio = NULL;
 lv_obj_t * img_bg = NULL;
 lv_obj_t * btn2 = NULL;
-
-
-lv_obj_t * img2 = NULL;
-
 
 static lv_style_t style_main;
 static lv_style_t style_indicator;
@@ -481,8 +359,7 @@ static void ledon (lv_event_t * e)
 
   lv_obj_t * label;
   
-
-   //LV_IMG_DECLARE(colorbar);  // Déclaration de l'image
+LV_IMG_DECLARE(colorbar);  // Déclaration de l'image
 
 //BP LED AUTO
 
@@ -500,15 +377,11 @@ static void ledon (lv_event_t * e)
 
 
     img_bg = lv_img_create(lv_screen_active());  // Crée l'objet image sur l'écran actif
-    lv_img_set_src(img_bg, "U:/img/colorbar.bin");  // Associe l'image à l'objet
+    lv_img_set_src(img_bg, &colorbar);  // Associe l'image à l'objet
 
     /* Positionner l'image en fond */
     lv_obj_align(img_bg, LV_ALIGN_CENTER, 0, 0);  // Centrer l'image dans l'écran
     //lv_obj_set_style_opa(img_bg, LV_OPA_COVER, 0);  // Assurez-vous que l'image couvre entièrement l'arrière-plan
-
-    img2 = lv_image_create(lv_screen_active());
-   // lv_image_set_src(img2, LV_SYMBOL_OK "Accept");
-    lv_obj_align_to(img2, img_bg, LV_ALIGN_OUT_BOTTOM_MID, 0, 20);
 
     /* Créer un style pour l'indicateur */
     static lv_style_t style_indicator;
@@ -530,7 +403,16 @@ static void ledon (lv_event_t * e)
     lv_obj_remove_style_all(slider);  // Supprime les styles par défaut
     lv_obj_add_event_cb(slider, slider_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
 
+    lv_obj_set_size(slider, 420, 30);
 
+    
+    lv_obj_set_style_width(slider, 30, LV_PART_KNOB);
+    lv_obj_set_style_height(slider, 5, LV_PART_KNOB);
+    
+    
+
+// Supprimer le rayon (pour pas arrondir)
+    lv_obj_set_style_radius(slider, 0, LV_PART_KNOB);
 
     /* Ajouter les styles au slider */
     lv_obj_add_style(slider, &style_indicator, LV_PART_INDICATOR);  // Applique le style à l'indicateur
@@ -554,130 +436,14 @@ static void ledon (lv_event_t * e)
     lv_obj_align(slider, LV_ALIGN_CENTER, 0, 0);
 
     lv_obj_align_to(slider_label, slider, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
-    lv_obj_align_to(rouge, slider, LV_ALIGN_OUT_BOTTOM_MID, -30, 30);
+    lv_obj_align_to(rouge, slider, LV_ALIGN_OUT_BOTTOM_MID, -40, 30);
     lv_obj_align_to(vert, slider, LV_ALIGN_OUT_BOTTOM_MID, 0, 30);
-    lv_obj_align_to(bleu, slider, LV_ALIGN_OUT_BOTTOM_MID, 30, 30);
+    lv_obj_align_to(bleu, slider, LV_ALIGN_OUT_BOTTOM_MID, 40, 30);
 
 
     /* Centrer le slider sur l'écran */
     lv_obj_center(slider);
 
-  /*btnrog = lv_button_create(lv_screen_active());
-  lv_obj_align(btnrog, LV_ALIGN_CENTER, -190, -100);
-  Serial.printf("align ok");
-  lv_obj_remove_flag(btnrog, LV_OBJ_FLAG_PRESS_LOCK);
-
-  label = lv_label_create(btnrog);
-  lv_label_set_text(label, "Rouge");
-  Serial.printf("text ok");
-  lv_obj_center(label);
-  lv_obj_add_event_cb(btnrog, ledrog, LV_EVENT_CLICKED, NULL);
-
-//BP COULEUR BLEU
-
-  btnble = lv_button_create(lv_screen_active());
-  lv_obj_align(btnble, LV_ALIGN_CENTER, -190, -60);
-  Serial.printf("align ok");
-  lv_obj_remove_flag(btnble, LV_OBJ_FLAG_PRESS_LOCK);
-
-  label = lv_label_create(btnble);
-  lv_label_set_text(label, "Bleu");
-  Serial.printf("text ok");
-  lv_obj_center(label);
-  lv_obj_add_event_cb(btnble, ledble, LV_EVENT_CLICKED, NULL);
-
-//BP COULEUR VERT
-
-  btnver = lv_button_create(lv_screen_active());
-  lv_obj_align(btnver, LV_ALIGN_CENTER, -190, -20);
-  Serial.printf("align ok");
-  lv_obj_remove_flag(btnver, LV_OBJ_FLAG_PRESS_LOCK);
-
-  label = lv_label_create(btnver);
-  lv_label_set_text(label, "Vert");
-  Serial.printf("text ok");
-  lv_obj_center(label);
-  lv_obj_add_event_cb(btnver, ledver, LV_EVENT_CLICKED, NULL);
-
-//BP COULEUR BLANC
-
-  btnbla = lv_button_create(lv_screen_active());
-  lv_obj_align(btnbla, LV_ALIGN_CENTER, -190, 20);
-  Serial.printf("align ok");
-  lv_obj_remove_flag(btnbla, LV_OBJ_FLAG_PRESS_LOCK);
-
-  label = lv_label_create(btnbla);
-  lv_label_set_text(label, "Blanc");
-  Serial.printf("text ok");
-  lv_obj_center(label);
-  lv_obj_add_event_cb(btnbla, ledbla, LV_EVENT_CLICKED, NULL);
-
-//BP COULEUR JAUNE
-
-  btnja = lv_button_create(lv_screen_active());
-  lv_obj_align(btnja, LV_ALIGN_CENTER, -190, 60);
-  Serial.printf("align ok");
-  lv_obj_remove_flag(btnja, LV_OBJ_FLAG_PRESS_LOCK);
-
-  label = lv_label_create(btnja);
-  lv_label_set_text(label, "Jaune");
-  Serial.printf("text ok");
-  lv_obj_center(label);
-  lv_obj_add_event_cb(btnja, ledja, LV_EVENT_CLICKED, NULL);
-
-//BP COULEUR ORANGE
-
-  btnor = lv_button_create(lv_screen_active());
-  lv_obj_align(btnor, LV_ALIGN_CENTER, -190, 100);
-  Serial.printf("align ok");
-  lv_obj_remove_flag(btnor, LV_OBJ_FLAG_PRESS_LOCK);
-
-  label = lv_label_create(btnor);
-  lv_label_set_text(label, "Orange");
-  Serial.printf("text ok");
-  lv_obj_center(label);
-  lv_obj_add_event_cb(btnor, ledor, LV_EVENT_CLICKED, NULL);
-
-//BP COULEUR MARRON
-
-  btnmar = lv_button_create(lv_screen_active());
-  lv_obj_align(btnmar, LV_ALIGN_CENTER, -95, -60);
-  Serial.printf("align ok");
-  lv_obj_remove_flag(btnmar, LV_OBJ_FLAG_PRESS_LOCK);
-
-  label = lv_label_create(btnmar);
-  lv_label_set_text(label, "Marron");
-  Serial.printf("text ok");
-  lv_obj_center(label);
-  lv_obj_add_event_cb(btnmar, ledmar, LV_EVENT_CLICKED, NULL);
-
-//BP COULEUR ROSE
-
-  btnros = lv_button_create(lv_screen_active());
-  lv_obj_align(btnros, LV_ALIGN_CENTER, -95, -20);
-  Serial.printf("align ok");
-  lv_obj_remove_flag(btnros, LV_OBJ_FLAG_PRESS_LOCK);
-
-  label = lv_label_create(btnros);
-  lv_label_set_text(label, "Rose");
-  Serial.printf("text ok");
-  lv_obj_center(label);
-  lv_obj_add_event_cb(btnros, ledros, LV_EVENT_CLICKED, NULL);
-
-
-//BP COULEUR VIOLET
-
-  btnvio = lv_button_create(lv_screen_active());
-  lv_obj_align(btnvio, LV_ALIGN_CENTER, -95, 60);
-  Serial.printf("align ok");
-  lv_obj_remove_flag(btnvio, LV_OBJ_FLAG_PRESS_LOCK);
-
-  label = lv_label_create(btnvio);
-  lv_label_set_text(label, "Violet");
-  Serial.printf("text ok");
-  lv_obj_center(label);
-  lv_obj_add_event_cb(btnvio, ledvio, LV_EVENT_CLICKED, NULL);
-  */
  
  
  }
@@ -690,6 +456,7 @@ static void ledoff (lv_event_t * e)
  
  if (bp == LV_EVENT_CLICKED){
 
+
   lance = false;
   animation_step = 0;
 
@@ -697,32 +464,12 @@ static void ledoff (lv_event_t * e)
   analogWrite(G, 0);    
   analogWrite(B, 0);
 
-  lv_obj_del(btnrog);
-        btnrog = NULL;
-  lv_obj_del(btnble);
-        btnble = NULL;
-  lv_obj_del(btnver);
-        btnver = NULL;
-  lv_obj_del(btnbla);
-        btnbla = NULL;
-  lv_obj_del(btnja);
-        btnja = NULL;
-  lv_obj_del(btnor);
-        btnor = NULL;
-  lv_obj_del(btnmar);
-        btnmar = NULL;
-  lv_obj_del(btnros);
-        btnros = NULL;
   lv_obj_del(img_bg);
         img_bg = NULL;
-  lv_obj_del(btnvio);
-        btnvio = NULL;       
   lv_obj_del(slider_label);
         slider_label = NULL;  
   lv_obj_del(slider);
-        slider = NULL; 
-  lv_obj_del(img2);
-        img2 = NULL; 
+        slider = NULL;  
   lv_obj_del(rouge);
         rouge = NULL;      
   lv_obj_del(vert);
@@ -755,7 +502,7 @@ void mySetup()
 //BP LED ON
 
   lv_obj_t * btn1 = lv_button_create(lv_screen_active());
-  lv_obj_align(btn1, LV_ALIGN_CENTER, 210, -20);
+  lv_obj_align(btn1, LV_ALIGN_CENTER, 210, -100);
   Serial.printf("align ok");
   lv_obj_remove_flag(btn1, LV_OBJ_FLAG_PRESS_LOCK);
 
@@ -769,7 +516,7 @@ void mySetup()
 //BP LED OFF
 
   btn2 = lv_button_create(lv_screen_active());
-  lv_obj_align(btn2, LV_ALIGN_CENTER, 210, 20);
+  lv_obj_align(btn2, LV_ALIGN_CENTER, 210, 100);
   Serial.printf("align ok");
   lv_obj_remove_flag(btn2, LV_OBJ_FLAG_PRESS_LOCK);
 
@@ -797,7 +544,7 @@ void loop()
   
   if(lance == true){
   
-  
+    lv_obj_set_state(slider, LV_STATE_DISABLED, true);
 
    // Incrémente le pas de l'animation
      // Si on atteint la fin, on réinitialise
@@ -815,7 +562,7 @@ void loop()
 
   lv_snprintf(buf, sizeof(buf), "%d%%", autosli);
   lv_label_set_text(slider_label, buf);
-  lv_obj_align_to(slider_label, AUTO, LV_ALIGN_OUT_BOTTOM_MID, 0, 50);
+  lv_obj_align_to(slider_label, slider, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
 
 
   int red, blue, green;
@@ -833,9 +580,9 @@ void loop()
   lv_label_set_text(vert, g);
   lv_label_set_text(bleu, b);
   
-  lv_obj_align_to(rouge, AUTO, LV_ALIGN_OUT_BOTTOM_MID, -40, 70);
-  lv_obj_align_to(vert, AUTO, LV_ALIGN_OUT_BOTTOM_MID, 0, 70);
-  lv_obj_align_to(bleu, AUTO, LV_ALIGN_OUT_BOTTOM_MID, 40, 70);
+  lv_obj_align_to(rouge, slider, LV_ALIGN_OUT_BOTTOM_MID, -40, 30);
+  lv_obj_align_to(vert, slider, LV_ALIGN_OUT_BOTTOM_MID, 0, 30);
+  lv_obj_align_to(bleu, slider, LV_ALIGN_OUT_BOTTOM_MID, 40, 30);
   //printf("R = %d, B = %d, G = %d\n", red, blue, green);
 
   analogWrite(R, red);    
