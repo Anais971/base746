@@ -19,21 +19,6 @@ static lv_obj_t * rouge;
 lv_obj_t * AUTO = NULL;
 bool lance = false;
 
-static lv_timer_t * auto_color_timer = NULL;
-
-
-
- /*const lv_image_dsc_t colorbar = {
-    {  // Initialisation du champ `header`
-        LV_IMAGE_HEADER_MAGIC,  // magic
-        48,                     // w
-        468,                    // h
-        LV_COLOR_FORMAT_RGB565  // cf
-    },
-    22464 * 2,                  // data_size
-    colorbar_map,               // data
-    NULL                        // reserved
-};*/
 
 
 // Pointeur vers le fichier réel, sera géré par votre système de fichiers sous-jacent
@@ -144,10 +129,6 @@ static int redled(int sli)
   int slideb;
   int Y;
   
-
-  //int rem = sli % 255; // se remet à 0 pour eviter de depasser 255
-  //float ratio = rem / 255.0; 
-
 
   if ((sli>=0)&&(sli<1*255)) // g monte r reste
   {
@@ -343,6 +324,7 @@ static void slider_event_cb(lv_event_t * e)
 
 lv_obj_t * img_bg = NULL;
 lv_obj_t * btn2 = NULL;
+lv_obj_t * img_bg3 = NULL;
 
 static lv_style_t style_main;
 static lv_style_t style_indicator;
@@ -431,6 +413,11 @@ LV_IMG_DECLARE(colorbar);  // Déclaration de l'image
     lv_label_set_text(vert, "0%");
     lv_label_set_text(bleu, "0%");
     
+    lv_obj_set_style_text_color(slider_label, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+    lv_obj_set_style_text_color(rouge, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+    lv_obj_set_style_text_color(vert, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+    lv_obj_set_style_text_color(bleu, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+
 
     /* Positionner le slider au-dessus de l'image */
     lv_obj_align(slider, LV_ALIGN_CENTER, 0, 0);
@@ -499,6 +486,17 @@ void mySetup()
   // Initialisations générales
   lv_obj_t * label;
 
+  LV_IMG_DECLARE(mhimg);
+
+  img_bg3 = lv_img_create(lv_screen_active());  // Crée l'objet image sur l'écran actif
+  lv_img_set_src(img_bg3, &mhimg);  // Associe l'image à l'objet
+
+    /* Positionner l'image en fond */
+  lv_obj_align(img_bg3, LV_ALIGN_CENTER, 0, 0);  // Centrer l'image dans l'écran
+  lv_image_set_scale(img_bg3, 480);
+  
+
+
 //BP LED ON
 
   lv_obj_t * btn1 = lv_button_create(lv_screen_active());
@@ -528,6 +526,8 @@ void mySetup()
   
   lv_obj_t * titre = lv_label_create(lv_screen_active());
   lv_label_set_text(titre, "CONTROLEUR LED");
+
+  lv_obj_set_style_text_color(titre, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
   lv_obj_align(titre, LV_ALIGN_CENTER, 0, -100);
 
 
