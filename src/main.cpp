@@ -1,66 +1,79 @@
+// Inclusion de la bibliothèque principale LVGL (interface graphique)
 #include "lvgl.h"
+
+// Inclusion du fichier de configuration LVGL (options activées, tailles, couleurs, etc.)
 #include "lv_conf.h"
+
+// Inclusion de la bibliothèque standard C pour la gestion des fichiers, entrées/sorties
 #include <stdio.h>
-//#include "colorbar.h"
 
+//#include "colorbar.h"  // (Commenté) - Sert probablement à inclure une image pour l’arrière-plan du slider
 
-#define LV_USE_FS_STDIO 1 // Pour les systèmes de fichiers standard (comme sur PC)
-#define LV_USE_FS_FATFS 1
-#define LV_USE_TJPGD 1 // Pour les images JPG
-#define LV_USE_PNG 1  
+// Activation des modules de fichiers et formats image dans LVGL
+#define LV_USE_FS_STDIO 1   // Utilisation du système de fichiers standard (stdio)
+#define LV_USE_FS_FATFS 1   // Support du système de fichiers FatFS (ex : carte SD)
+#define LV_USE_TJPGD 1      // Support du format image JPEG
+#define LV_USE_PNG 1        // Support du format image PNG
 
+// Définition d'un alias pour simplifier l'utilisation de pointeurs de fichiers
 typedef FILE * my_file_t;
 
- 
-static lv_obj_t * slider_label;
-static lv_obj_t * bleu;
-static lv_obj_t * vert;
-static lv_obj_t * rouge;
-lv_obj_t * AUTO = NULL;
-bool lance = false;
+// Déclaration de pointeurs vers les objets LVGL utilisés dans l'interface
+static lv_obj_t * slider_label;  // Label qui affichera la valeur du slider
+static lv_obj_t * bleu;          // Label pour la composante bleue
+static lv_obj_t * vert;          // Label pour la composante verte
+static lv_obj_t * rouge;         // Label pour la composante rouge
+lv_obj_t * AUTO = NULL;          // Bouton AUTO (mode automatique)
+bool lance = false;              // Variable de contrôle pour activer ou non le mode automatique
 
-
-
-// Pointeur vers le fichier réel, sera géré par votre système de fichiers sous-jacent
+// (Répétition inutile, déjà défini au-dessus)
 typedef FILE * my_file_t; // Ou SdFile * pour Arduino SD
 
-// Fonctions de rappel pour le système de fichiers LVGL
+// --- Fonctions de rappel pour le système de fichiers LVGL ---
+
+// Fonction appelée lorsqu’un fichier est ouvert par LVGL
 static void * my_open_cb(lv_fs_drv_t * drv, const char * path, lv_fs_mode_t mode)
 {
-    // Convertir le mode LVGL en mode de système de fichiers réel (ex: "r", "w")
+    // Conversion du mode LVGL en mode de fichier standard C
     const char * fs_mode = "";
     if (mode == LV_FS_MODE_RD) fs_mode = "rb"; // Lecture binaire
     else if (mode == LV_FS_MODE_WR) fs_mode = "wb"; // Écriture binaire
     else if (mode == (LV_FS_MODE_RD | LV_FS_MODE_WR)) fs_mode = "rb+"; // Lecture/écriture binaire
     else return NULL; // Mode non supporté
 
-    my_file_t f = fopen(path, fs_mode); // Utilisez la fonction d'ouverture de votre système de fichiers
+    // Ouverture réelle du fichier
+    my_file_t f = fopen(path, fs_mode);
     return (void *)f;
 }
 
+// Fonction appelée pour fermer un fichier
 static lv_fs_res_t my_close_cb(lv_fs_drv_t * drv, void * file_p)
 {
-    fclose((my_file_t)file_p); // Utilisez la fonction de fermeture de votre système de fichiers
+    fclose((my_file_t)file_p); // Fermeture standard du fichier
     return LV_FS_RES_OK;
 }
 
+// Fonction appelée pour lire un fichier
 static lv_fs_res_t my_read_cb(lv_fs_drv_t * drv, void * file_p, void * buf, uint32_t btr, uint32_t * br)
 {
-    *br = fread(buf, 1, btr, (my_file_t)file_p); // Utilisez la fonction de lecture de votre système de fichiers
+    *br = fread(buf, 1, btr, (my_file_t)file_p); // Lecture d’un bloc de données
     return LV_FS_RES_OK;
 }
 
+// Fonction appelée pour se déplacer dans un fichier (positionner le curseur)
 static lv_fs_res_t my_seek_cb(lv_fs_drv_t * drv, void * file_p, uint32_t pos, lv_fs_whence_t whence)
 {
-    fseek((my_file_t)file_p, pos, (int)whence); // Utilisez la fonction de seek de votre système de fichiers
+    fseek((my_file_t)file_p, pos, (int)whence); // Seek standard
     return LV_FS_RES_OK;
 }
 
+// Fonction appelée pour récupérer la position actuelle dans un fichier
 static lv_fs_res_t my_tell_cb(lv_fs_drv_t * drv, void * file_p, uint32_t * pos_p)
 {
-    *pos_p = ftell((my_file_t)file_p); // Utilisez la fonction de tell de votre système de fichiers
+    *pos_p = ftell((my_file_t)file_p); // Tell standard
     return LV_FS_RES_OK;
 }
+
 
 // Initialisation du pilote de système de fichiers LVGL
 void lvgl_fs_init(void)
@@ -108,141 +121,147 @@ void testLvgl()
 
 #ifdef ARDUINO
 
-//def les pin rgb
-#define R  10  
-#define G  9 
-#define B  11 
+// Définition des broches utilisées pour contrôler la LED RGB via PWM
+#define R  10  // Broche pour la couleur rouge
+#define G  9   // Broche pour la couleur verte
+#define B  11  // Broche pour la couleur bleue
 
+// Inclusion du pilote spécifique pour LVGL adapté à ta plateforme (Arduino ou autre)
 #include "lvglDrivers.h"
 
-// à décommenter pour tester la démo
-// #include "demos/lv_demos.h"
+// #include "demos/lv_demos.h" // (optionnel) Démo LVGL, à décommenter pour tester les composants LVGL
+
+// Déclaration du slider global (créé plus tard dans l'interface)
 lv_obj_t * slider = NULL;
 
-int A = -255 / 255;
+// Coefficient de pente utilisé pour les calculs des couleurs (valeur fixée à -1 ici)
+int A = -255 / 255;  // = -1
 
 
 
+// Fonction pour calculer la valeur du canal rouge en fonction du slider (sli)
 static int redled(int sli)
 {
-  int red;
-  int slideb;
-  int Y;
-  
+  int red;     // valeur de sortie
+  int slideb;  // base de décalage sur l’axe du slider
+  int Y;       // valeur de référence pour le calcul
 
-  if ((sli>=0)&&(sli<1*255)) // g monte r reste
-  {
+  // 1re phase : Vert augmente, Rouge reste à 255
+  if ((sli >= 0) && (sli < 1*255)) {
     red = 255;
   }
-  else if ((sli>=1*255)&&(sli<2*255)) //r descend g reste
-  {
+
+  // 2e phase : Rouge descend, Vert reste
+  else if ((sli >= 1*255) && (sli < 2*255)) {
     slideb = 1*255;
     Y = 255;
-
-    red = A*(sli-slideb)+Y;
+    red = A * (sli - slideb) + Y;
   }
-  else if ((sli>=4*255)&&(sli<5*255)) //r monte b reste
-  {
+
+  // 5e phase : Rouge remonte, Bleu reste
+  else if ((sli >= 4*255) && (sli < 5*255)) {
     slideb = 4*255;
     Y = 0;
-    
-    red = -A*(sli-slideb)+Y;
+    red = -A * (sli - slideb) + Y;
   }
-  else if ((sli>=5*255)&&(sli<6*255)) // b descend r reste
-  {
+
+  // 6e phase : Bleu descend, Rouge reste
+  else if ((sli >= 5*255) && (sli < 6*255)) {
     red = 255;
   }
+
+  // Valeur par défaut (en dehors des plages définies)
   else {
-    red = 0;  // Valeur par défaut si aucune condition ne correspond
+    red = 0;
   }
 
- return red;
-
+  return red;
 }
 
 
+
+// Fonction pour calculer la valeur du canal vert
 static int greenled(int sli)
 {
   int gre;
   int slideb;
   int Y;
 
-  if ((sli>=0)&&(sli<1*255)) // g monte 
-  {
+  // 1re phase : Vert monte
+  if ((sli >= 0) && (sli < 1*255)) {
     slideb = 0;
     Y = 0;
-    
-    gre = -A*(sli-slideb)+Y;
+    gre = -A * (sli - slideb) + Y;
   }
-  else if ((sli>=1*255)&&(sli<2*255))// r descend g reste 
-  {
-    gre = 255;
 
-  }
-  else if ((sli>=2*255)&&(sli<3*255)) // b monte g reste
-  {
+  // 2e phase : Rouge descend, Vert reste
+  else if ((sli >= 1*255) && (sli < 2*255)) {
     gre = 255;
-
   }
-  else if ((sli>=3*255)&&(sli<4*255)) //g descend
-  {
+
+  // 3e phase : Bleu monte, Vert reste
+  else if ((sli >= 2*255) && (sli < 3*255)) {
+    gre = 255;
+  }
+
+  // 4e phase : Vert descend
+  else if ((sli >= 3*255) && (sli < 4*255)) {
     slideb = 3*255;
     Y = 255;
-
-    gre = A*(sli-slideb)+Y;
-
+    gre = A * (sli - slideb) + Y;
   }
+
   else {
-    gre = 0;  // Valeur par défaut si aucune condition ne correspond
+    gre = 0;
   }
 
   return gre;
-
 }
 
+
+// Fonction pour calculer la valeur du canal bleu
 static int blueled(int sli)
 {
-
   int blue;
   int slideb;
   int Y;
-  
-  if ((sli>=2*255)&&(sli<3*255)) //b monte g reste
-  {
+
+  // 3e phase : Bleu monte
+  if ((sli >= 2*255) && (sli < 3*255)) {
     slideb = 2*255;
     Y = 0;
-
-    blue = -A*(sli-slideb)+Y;
-
+    blue = -A * (sli - slideb) + Y;
   }
-  else if ((sli>=3*255)&&(sli<4*255)) // g descend b reste
-  {
+
+  // 4e phase : Vert descend, Bleu reste
+  else if ((sli >= 3*255) && (sli < 4*255)) {
     blue = 255;
-
   }
-  else if ((sli>=4*255)&&(sli<5*255)) // r monte b reste
-  {
+
+  // 5e phase : Rouge monte, Bleu reste
+  else if ((sli >= 4*255) && (sli < 5*255)) {
     blue = 255;
-
   }
-  else if ((sli>=5*255)&&(sli<6*255)) // b descend
-  {
+
+  // 6e phase : Bleu descend
+  else if ((sli >= 5*255) && (sli < 6*255)) {
     slideb = 5*255;
     Y = 255;
-
-    blue = A*(sli-slideb)+Y;
-
+    blue = A * (sli - slideb) + Y;
   }
+
   else {
-    blue = 0;  // Valeur par défaut si aucune condition ne correspond
+    blue = 0;
   }
-  
 
   return blue;
-
 }
 
-static int animation_step = 0; // Le compteur pour l'animation
+
+// Compteur utilisé pour faire évoluer automatiquement la couleur dans le temps
+static int animation_step = 0;
+
+// Variable de bascule utilisée pour activer ou désactiver le mode automatique
 static int plus = 0;
 
 
@@ -250,70 +269,79 @@ static int plus = 0;
 
 
 
-static void ledauto (lv_event_t * e){
+// Fonction appelée lorsqu'on appuie sur le bouton AUTO
+// Elle permet de lancer ou d'arrêter le mode de changement automatique des LED
+static void ledauto(lv_event_t * e) {
+    // Récupère le type d’événement (ici, un clic)
+    lv_event_code_t bp = lv_event_get_code(e);
 
-lv_event_code_t bp = lv_event_get_code(e);
-lv_obj_t * btn = (lv_obj_t *) lv_event_get_target(e);
+    // Récupère l’objet qui a déclenché l’événement (ici le bouton AUTO)
+    lv_obj_t * btn = (lv_obj_t *) lv_event_get_target(e);
  
- if (bp == LV_EVENT_CLICKED){
+    // Si le bouton AUTO est cliqué
+    if (bp == LV_EVENT_CLICKED) {
 
-  
+        // Active le mode automatique
+        lance = true;
+        plus++;  // Incrémente le compteur d'appui
 
-  lance = true;
-  plus++;
+        // Si on appuie une deuxième fois
+        if (plus == 2) {
+            // Réactive le slider (pour le contrôle manuel)
+            lv_obj_set_state(slider, LV_STATE_DISABLED, false);
 
-  if (plus == 2) { 
-    
-    lv_obj_set_state(slider, LV_STATE_DISABLED, false);
-
-    lance = false;
-    plus = 0;
-  }
-
-
-  }
+            // Désactive l'automatisation
+            lance = false;
+            plus = 0;
+        }
+    }
 }
 
 
 
 
+
+// Fonction appelée lorsqu’on déplace le slider
+// Elle met à jour les valeurs RGB de la LED et les affiche à l’écran
 static void slider_event_cb(lv_event_t * e)
 {
-  lv_obj_t * slider = lv_event_get_target_obj(e);
-  char buf[8];
-  char r[8];
-  char g[8];
-  char b[8];
+    // Récupère le slider qui a généré l’événement
+    lv_obj_t * slider = lv_event_get_target_obj(e);
 
-  lv_snprintf(buf, sizeof(buf), "%d%%", ((int)lv_slider_get_value(slider)));
-  lv_label_set_text(slider_label, buf);
-  lv_obj_align_to(slider_label, slider, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
+    // Buffers pour les textes affichés
+    char buf[8];  // Pour le pourcentage du slider
+    char r[8];    // Pour la valeur rouge
+    char g[8];    // Pour la valeur verte
+    char b[8];    // Pour la valeur bleue
 
+    // Affiche la position actuelle du slider (0 à 1530)
+    lv_snprintf(buf, sizeof(buf), "%d%%", ((int)lv_slider_get_value(slider)));
+    lv_label_set_text(slider_label, buf);
+    lv_obj_align_to(slider_label, slider, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
 
-  int red, blue, green;
+    // Récupère les valeurs RGB correspondantes
+    int red   = redled(lv_slider_get_value(slider));
+    int blue  = blueled(lv_slider_get_value(slider));
+    int green = greenled(lv_slider_get_value(slider));
 
-  red = redled(lv_slider_get_value(slider));
-  blue = blueled(lv_slider_get_value(slider));
-  green = greenled(lv_slider_get_value(slider));
+    // Met à jour les labels avec les valeurs RGB
+    lv_snprintf(r, sizeof(r), "%d%%", red);
+    lv_snprintf(g, sizeof(g), "%d%%", green);
+    lv_snprintf(b, sizeof(b), "%d%%", blue);
 
+    lv_label_set_text(rouge, r);
+    lv_label_set_text(vert, g);
+    lv_label_set_text(bleu, b);
 
-  lv_snprintf(r, sizeof(r), "%d%%", red);
-  lv_snprintf(g, sizeof(g), "%d%%", green);
-  lv_snprintf(b, sizeof(b), "%d%%", blue);
+    // Positionnement des labels sous le slider
+    lv_obj_align_to(rouge, slider, LV_ALIGN_OUT_BOTTOM_MID, -40, 30);
+    lv_obj_align_to(vert, slider, LV_ALIGN_OUT_BOTTOM_MID, 0, 30);
+    lv_obj_align_to(bleu, slider, LV_ALIGN_OUT_BOTTOM_MID, 40, 30);
 
-  lv_label_set_text(rouge, r);
-  lv_label_set_text(vert, g);
-  lv_label_set_text(bleu, b);
-  
-  lv_obj_align_to(rouge, slider, LV_ALIGN_OUT_BOTTOM_MID, -40, 30);
-  lv_obj_align_to(vert, slider, LV_ALIGN_OUT_BOTTOM_MID, 0, 30);
-  lv_obj_align_to(bleu, slider, LV_ALIGN_OUT_BOTTOM_MID, 40, 30);
-  //printf("R = %d, B = %d, G = %d\n", red, blue, green);
-
-  analogWrite(R, red);    
-  analogWrite(G, green);    
-  analogWrite(B, blue); 
-
+    // Applique les couleurs via PWM sur les broches R, G, B
+    analogWrite(R, red);    
+    analogWrite(G, green);    
+    analogWrite(B, blue); 
 }
 
 
@@ -322,284 +350,288 @@ static void slider_event_cb(lv_event_t * e)
 
 
 
+// Objets globaux pour interface : image de fond, bouton OFF, deuxième image de fond
 lv_obj_t * img_bg = NULL;
 lv_obj_t * btn2 = NULL;
 lv_obj_t * img_bg3 = NULL;
 
+// Déclaration de styles pour LVGL (non utilisés ici sauf styles slider plus bas)
 static lv_style_t style_main;
 static lv_style_t style_indicator;
 static lv_style_t style_knob;
 static lv_style_t style_pressed_color;
 
+
+// Fonction exécutée lorsqu’on clique sur le bouton "ON"
 static void ledon (lv_event_t * e)
 {
- lv_event_code_t bp = lv_event_get_code(e);
- lv_obj_t * btn = (lv_obj_t *) lv_event_get_target(e);
+    // Récupère le type d’événement déclenché
+    lv_event_code_t bp = lv_event_get_code(e);
+
+    // Récupère le bouton qui a déclenché l’événement
+    lv_obj_t * btn = (lv_obj_t *) lv_event_get_target(e);
  
- if (bp == LV_EVENT_CLICKED){
-  //BP COULEUR ROUGE
+    // Si l'événement est un clic
+    if (bp == LV_EVENT_CLICKED){
 
-  lv_obj_t * label;
-  
-LV_IMG_DECLARE(colorbar);  // Déclaration de l'image
+        // Déclaration d’un label local
+        lv_obj_t * label;
 
-//BP LED AUTO
+        // Déclaration de l’image utilisée comme fond (colorbar)
+        LV_IMG_DECLARE(colorbar);
 
-  AUTO = lv_button_create(lv_screen_active());
-  lv_obj_align(AUTO, LV_ALIGN_CENTER, 0, -50);
-  Serial.printf("align ok");
-  lv_obj_remove_flag(AUTO, LV_OBJ_FLAG_PRESS_LOCK);
+        // ➤ Création du bouton AUTO (pour activer l’animation automatique)
+        AUTO = lv_button_create(lv_screen_active());                // Crée un nouveau bouton
+        lv_obj_align(AUTO, LV_ALIGN_CENTER, 0, -50);                // Positionne le bouton au-dessus du centre
+        Serial.printf("align ok");
+        lv_obj_remove_flag(AUTO, LV_OBJ_FLAG_PRESS_LOCK);          // Empêche le bouton de rester "enfoncé"
 
-  label = lv_label_create(AUTO);
-  lv_label_set_text(label, "Auto");
-  Serial.printf("text ok");
-  lv_obj_center(label);
-  //testLvgl();
-  lv_obj_add_event_cb(AUTO, ledauto, LV_EVENT_CLICKED, NULL);
+        label = lv_label_create(AUTO);                              // Crée un texte à l'intérieur du bouton
+        lv_label_set_text(label, "Auto");                           // Définit le texte
+        Serial.printf("text ok");
+        lv_obj_center(label);                                       // Centre le texte dans le bouton
+        lv_obj_add_event_cb(AUTO, ledauto, LV_EVENT_CLICKED, NULL);// Associe l’événement click à la fonction ledauto()
 
+        // ➤ Création de l’image de fond (colorbar derrière le slider)
+        img_bg = lv_img_create(lv_screen_active());                 // Crée une image
+        lv_img_set_src(img_bg, &colorbar);                          // Associe l’image déclarée
+        lv_obj_align(img_bg, LV_ALIGN_CENTER, 0, 0);                // Centre l’image
 
-    img_bg = lv_img_create(lv_screen_active());  // Crée l'objet image sur l'écran actif
-    lv_img_set_src(img_bg, &colorbar);  // Associe l'image à l'objet
+        // ➤ Configuration du style de l’indicateur du slider (barre colorée)
+        static lv_style_t style_indicator;
+        lv_style_init(&style_indicator);
+        lv_style_set_bg_color(&style_indicator, lv_palette_main(LV_PALETTE_CYAN));
+        lv_style_set_radius(&style_indicator, LV_RADIUS_CIRCLE);
 
-    /* Positionner l'image en fond */
-    lv_obj_align(img_bg, LV_ALIGN_CENTER, 0, 0);  // Centrer l'image dans l'écran
-    //lv_obj_set_style_opa(img_bg, LV_OPA_COVER, 0);  // Assurez-vous que l'image couvre entièrement l'arrière-plan
+        // ➤ Configuration du style du "knob" (bouton circulaire du slider)
+        static lv_style_t style_knob;
+        lv_style_init(&style_knob);
+        lv_style_set_bg_color(&style_knob, lv_palette_main(LV_PALETTE_CYAN));
+        lv_style_set_radius(&style_knob, LV_RADIUS_CIRCLE);
+        lv_style_set_border_width(&style_knob, 2);
+        lv_style_set_border_color(&style_knob, lv_palette_darken(LV_PALETTE_CYAN, 2));
+        lv_style_set_pad_all(&style_knob, 8);  // Rendre le bouton plus grand
 
-    /* Créer un style pour l'indicateur */
-    static lv_style_t style_indicator;
-    lv_style_init(&style_indicator);
-    lv_style_set_bg_color(&style_indicator, lv_palette_main(LV_PALETTE_CYAN));
-    lv_style_set_radius(&style_indicator, LV_RADIUS_CIRCLE);
+        // ➤ Création du slider (curseur horizontal)
+        slider = lv_slider_create(lv_screen_active());
+        lv_obj_remove_style_all(slider);                              // Supprime les styles par défaut
+        lv_obj_add_event_cb(slider, slider_event_cb, LV_EVENT_VALUE_CHANGED, NULL); // Lie l’événement de déplacement
 
-    /* Créer un style pour le bouton (knob) */
-    static lv_style_t style_knob;
-    lv_style_init(&style_knob);
-    lv_style_set_bg_color(&style_knob, lv_palette_main(LV_PALETTE_CYAN));
-    lv_style_set_radius(&style_knob, LV_RADIUS_CIRCLE);
-    lv_style_set_border_width(&style_knob, 2);
-    lv_style_set_border_color(&style_knob, lv_palette_darken(LV_PALETTE_CYAN, 2));
-    lv_style_set_pad_all(&style_knob, 8);  // Rendre le knob plus grand
+        lv_obj_set_size(slider, 420, 30);                             // Dimensions du slider
 
-    /* Créer un slider */
-    slider = lv_slider_create(lv_screen_active());  // Crée un slider
-    lv_obj_remove_style_all(slider);  // Supprime les styles par défaut
-    lv_obj_add_event_cb(slider, slider_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
+        lv_obj_set_style_width(slider, 30, LV_PART_KNOB);            // Largeur du bouton
+        lv_obj_set_style_height(slider, 5, LV_PART_KNOB);            // Hauteur du bouton
+        lv_obj_set_style_radius(slider, 0, LV_PART_KNOB);            // Pas de coins arrondis
 
-    lv_obj_set_size(slider, 420, 30);
+        // ➤ Appliquer les styles personnalisés
+        lv_obj_add_style(slider, &style_indicator, LV_PART_INDICATOR);
+        lv_obj_add_style(slider, &style_knob, LV_PART_KNOB);
 
-    
-    lv_obj_set_style_width(slider, 30, LV_PART_KNOB);
-    lv_obj_set_style_height(slider, 5, LV_PART_KNOB);
-    
-    
+        // ➤ Définir la plage du slider (valeurs entre 0 et 1530 pour animation complète RGB)
+        lv_slider_set_range(slider, 0, 1530);
 
-// Supprimer le rayon (pour pas arrondir)
-    lv_obj_set_style_radius(slider, 0, LV_PART_KNOB);
+        // ➤ Création des labels pour afficher les valeurs
+        slider_label = lv_label_create(lv_screen_active());
+        lv_label_set_text(slider_label, "0%");
 
-    /* Ajouter les styles au slider */
-    lv_obj_add_style(slider, &style_indicator, LV_PART_INDICATOR);  // Applique le style à l'indicateur
-    lv_obj_add_style(slider, &style_knob, LV_PART_KNOB);  // Applique le style au bouton (knob)
+        rouge = lv_label_create(lv_screen_active());
+        vert = lv_label_create(lv_screen_active());
+        bleu = lv_label_create(lv_screen_active());
+        lv_label_set_text(rouge, "0%");
+        lv_label_set_text(vert, "0%");
+        lv_label_set_text(bleu, "0%");
 
-    /* Définir la plage du slider de 0 à 1000 */
-    lv_slider_set_range(slider, 0, 1530);
-    slider_label = lv_label_create(lv_screen_active());
-    lv_label_set_text(slider_label, "0%");
+        // ➤ Changer la couleur des textes (blanc)
+        lv_obj_set_style_text_color(slider_label, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+        lv_obj_set_style_text_color(rouge, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+        lv_obj_set_style_text_color(vert, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+        lv_obj_set_style_text_color(bleu, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
 
+        // ➤ Positionnement du slider et des textes
+        lv_obj_align(slider, LV_ALIGN_CENTER, 0, 0); // Centrer le slider
+        lv_obj_align_to(slider_label, slider, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
+        lv_obj_align_to(rouge, slider, LV_ALIGN_OUT_BOTTOM_MID, -40, 30);
+        lv_obj_align_to(vert, slider, LV_ALIGN_OUT_BOTTOM_MID, 0, 30);
+        lv_obj_align_to(bleu, slider, LV_ALIGN_OUT_BOTTOM_MID, 40, 30);
 
-    rouge = lv_label_create(lv_screen_active());
-    vert = lv_label_create(lv_screen_active());
-    bleu = lv_label_create(lv_screen_active());
-    lv_label_set_text(rouge, "0%");
-    lv_label_set_text(vert, "0%");
-    lv_label_set_text(bleu, "0%");
-    
-    lv_obj_set_style_text_color(slider_label, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
-    lv_obj_set_style_text_color(rouge, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
-    lv_obj_set_style_text_color(vert, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
-    lv_obj_set_style_text_color(bleu, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
-
-
-    /* Positionner le slider au-dessus de l'image */
-    lv_obj_align(slider, LV_ALIGN_CENTER, 0, 0);
-
-    lv_obj_align_to(slider_label, slider, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
-    lv_obj_align_to(rouge, slider, LV_ALIGN_OUT_BOTTOM_MID, -40, 30);
-    lv_obj_align_to(vert, slider, LV_ALIGN_OUT_BOTTOM_MID, 0, 30);
-    lv_obj_align_to(bleu, slider, LV_ALIGN_OUT_BOTTOM_MID, 40, 30);
-
-
-    /* Centrer le slider sur l'écran */
-    lv_obj_center(slider);
-
- 
- 
- }
+        // Positionner correctement l’ensemble dans l’écran
+        lv_obj_center(slider);
+    }
 }
 
-static void ledoff (lv_event_t * e)
+
+// Fonction appelée quand l'utilisateur clique sur le bouton OFF
+static void ledoff(lv_event_t * e)
 {
- lv_event_code_t bp = lv_event_get_code(e);
- lv_obj_t * btn = (lv_obj_t *) lv_event_get_target(e);
- 
- if (bp == LV_EVENT_CLICKED){
+    // Récupère le type d’événement (clic, changement d'état, etc.)
+    lv_event_code_t bp = lv_event_get_code(e);
 
+    // Récupère l'objet qui a déclenché l'événement (ici, le bouton OFF)
+    lv_obj_t * btn = (lv_obj_t *) lv_event_get_target(e);
 
-  lance = false;
-  animation_step = 0;
+    // Si l'événement est un clic sur le bouton
+    if (bp == LV_EVENT_CLICKED){
 
-  analogWrite(R, 0);    
-  analogWrite(G, 0);    
-  analogWrite(B, 0);
+        // Désactive le mode automatique
+        lance = false;
 
-  lv_obj_del(img_bg);
+        // Réinitialise le compteur d'animation
+        animation_step = 0;
+
+        // Éteint les 3 canaux RGB en mettant les PWM à 0
+        analogWrite(R, 0);    
+        analogWrite(G, 0);    
+        analogWrite(B, 0);
+
+        // Supprime tous les éléments visuels créés par la fonction ledon()
+
+        lv_obj_del(img_bg);         // Supprime l'image de fond (barre de couleurs)
         img_bg = NULL;
-  lv_obj_del(slider_label);
-        slider_label = NULL;  
-  lv_obj_del(slider);
-        slider = NULL;  
-  lv_obj_del(rouge);
-        rouge = NULL;      
-  lv_obj_del(vert);
-        vert = NULL;
-  lv_obj_del(bleu);
-        bleu = NULL;
-  lv_obj_del(AUTO);
-        AUTO = NULL;
-         
 
- }
+        lv_obj_del(slider_label);   // Supprime le label du slider
+        slider_label = NULL;
+
+        lv_obj_del(slider);         // Supprime le slider lui-même
+        slider = NULL;
+
+        lv_obj_del(rouge);          // Supprime les labels des couleurs
+        rouge = NULL;
+
+        lv_obj_del(vert);
+        vert = NULL;
+
+        lv_obj_del(bleu);
+        bleu = NULL;
+
+        lv_obj_del(AUTO);           // Supprime le bouton AUTO
+        AUTO = NULL;
+    }
 }
 
 
 
+
+// Fonction appelée au démarrage du programme pour configurer l’interface
 void mySetup()
 {
+    // Configure les broches comme sorties pour les canaux RGB
+    pinMode(R, OUTPUT);
+    pinMode(G, OUTPUT);
+    pinMode(B, OUTPUT);
 
-  //pin entre ou sorti
-  pinMode(R, OUTPUT);
-  pinMode(G, OUTPUT);
-  pinMode(B, OUTPUT);
+    // -- Déclaration et affichage de l’image d’accueil --
+    lv_obj_t * label;
 
-  // à décommenter pour tester la démo
-  // lv_demo_widgets();
+    LV_IMG_DECLARE(mhimg); // Déclare une image externe nommée mhimg
 
-  // Initialisations générales
-  lv_obj_t * label;
+    img_bg3 = lv_img_create(lv_screen_active());  // Crée un objet image
+    lv_img_set_src(img_bg3, &mhimg);              // Associe l'image
+    lv_obj_align(img_bg3, LV_ALIGN_CENTER, 0, 0);  // Centre l’image
+    lv_image_set_scale(img_bg3, 480);             // (fonction probablement erronée ici, à vérifier)
 
-  LV_IMG_DECLARE(mhimg);
+    // -- Bouton ON --
 
-  img_bg3 = lv_img_create(lv_screen_active());  // Crée l'objet image sur l'écran actif
-  lv_img_set_src(img_bg3, &mhimg);  // Associe l'image à l'objet
+    lv_obj_t * btn1 = lv_button_create(lv_screen_active());         // Crée un bouton
+    lv_obj_align(btn1, LV_ALIGN_CENTER, 210, -100);                 // Le place à droite en haut
+    Serial.printf("align ok");
+    lv_obj_remove_flag(btn1, LV_OBJ_FLAG_PRESS_LOCK);              // Empêche le bouton de rester enfoncé
 
-    /* Positionner l'image en fond */
-  lv_obj_align(img_bg3, LV_ALIGN_CENTER, 0, 0);  // Centrer l'image dans l'écran
-  lv_image_set_scale(img_bg3, 480);
-  
+    label = lv_label_create(btn1);                                  // Crée un label pour le bouton
+    lv_label_set_text(label, "On");                                 // Texte du bouton
+    Serial.printf("text ok");
+    lv_obj_center(label);                                           // Centre le texte dans le bouton
+    lv_obj_add_event_cb(btn1, ledon, LV_EVENT_CLICKED, NULL);       // Associe l’action à la fonction ledon()
 
+    // -- Bouton OFF --
 
-//BP LED ON
+    btn2 = lv_button_create(lv_screen_active());                    // Crée le bouton OFF
+    lv_obj_align(btn2, LV_ALIGN_CENTER, 210, 100);                  // Le place à droite en bas
+    Serial.printf("align ok");
+    lv_obj_remove_flag(btn2, LV_OBJ_FLAG_PRESS_LOCK);
 
-  lv_obj_t * btn1 = lv_button_create(lv_screen_active());
-  lv_obj_align(btn1, LV_ALIGN_CENTER, 210, -100);
-  Serial.printf("align ok");
-  lv_obj_remove_flag(btn1, LV_OBJ_FLAG_PRESS_LOCK);
+    label = lv_label_create(btn2);                                  // Ajoute un texte au bouton OFF
+    lv_label_set_text(label, "Off");
+    Serial.printf("text ok");
+    lv_obj_center(label);
+    lv_obj_add_event_cb(btn2, ledoff, LV_EVENT_CLICKED, NULL);      // Associe le bouton à la fonction ledoff()
 
-  label = lv_label_create(btn1);
-  lv_label_set_text(label, "On");
-  Serial.printf("text ok");
-  lv_obj_center(label);
-  //testLvgl();
-  lv_obj_add_event_cb(btn1, ledon, LV_EVENT_CLICKED, NULL);
+    // -- Titre de l’interface --
 
-//BP LED OFF
+    lv_obj_t * titre = lv_label_create(lv_screen_active());         // Crée un titre
+    lv_label_set_text(titre, "CONTROLEUR LED");                     // Texte du titre
 
-  btn2 = lv_button_create(lv_screen_active());
-  lv_obj_align(btn2, LV_ALIGN_CENTER, 210, 100);
-  Serial.printf("align ok");
-  lv_obj_remove_flag(btn2, LV_OBJ_FLAG_PRESS_LOCK);
-
-  label = lv_label_create(btn2);
-  lv_label_set_text(label, "Off");
-  Serial.printf("text ok");
-  lv_obj_center(label);
-  lv_obj_add_event_cb(btn2, ledoff, LV_EVENT_CLICKED, NULL);
-  
-  lv_obj_t * titre = lv_label_create(lv_screen_active());
-  lv_label_set_text(titre, "CONTROLEUR LED");
-
-  lv_obj_set_style_text_color(titre, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
-  lv_obj_align(titre, LV_ALIGN_CENTER, 0, -100);
-
-
-
-
-
-
-
-
+    lv_obj_set_style_text_color(titre, lv_color_hex(0xFFFFFF), LV_PART_MAIN); // Met le texte en blanc
+    lv_obj_align(titre, LV_ALIGN_CENTER, 0, -100);                  // Positionne le titre en haut de l’écran
 }
 
+
+// Boucle principale du programme (exécutée en continu par la carte)
 void loop()
 {
-  
-  if(lance == true){
-  
-    lv_obj_set_state(slider, LV_STATE_DISABLED, true);
+    // Si le mode automatique est activé (après appui sur le bouton AUTO)
+    if (lance == true) {
 
-   // Incrémente le pas de l'animation
-     // Si on atteint la fin, on réinitialise
-      animation_step++;
-    if (animation_step >= 1530){
-      animation_step = 0;
+        // Désactive le slider pour que l’utilisateur ne puisse pas l’utiliser
+        lv_obj_set_state(slider, LV_STATE_DISABLED, true);
+
+        // Incrémente la variable de l'animation à chaque boucle
+        animation_step++;
+
+        // Si on atteint la fin du cycle (valeur max), on recommence à 0
+        if (animation_step >= 1530) {
+            animation_step = 0;
+        }
+
+        // Stocke la valeur courante de l’animation (entre 0 et 1530)
+        int autosli = animation_step;
+
+        // Buffers pour l'affichage des valeurs (slider + RGB)
+        char buf[8];
+        char r[8];
+        char g[8];
+        char b[8];
+
+        // Affiche la position actuelle de l'animation dans le label du slider
+        lv_snprintf(buf, sizeof(buf), "%d%%", autosli);
+        lv_label_set_text(slider_label, buf);
+        lv_obj_align_to(slider_label, slider, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
+
+        // Calcule les valeurs RGB en fonction de la position du slider automatique
+        int red   = redled(autosli);
+        int blue  = blueled(autosli);
+        int green = greenled(autosli);
+
+        // Affiche les valeurs RGB à l'écran
+        lv_snprintf(r, sizeof(r), "%d%%", red);
+        lv_snprintf(g, sizeof(g), "%d%%", green);
+        lv_snprintf(b, sizeof(b), "%d%%", blue);
+
+        lv_label_set_text(rouge, r);
+        lv_label_set_text(vert, g);
+        lv_label_set_text(bleu, b);
+
+        // Positionne les labels sous le slider
+        lv_obj_align_to(rouge, slider, LV_ALIGN_OUT_BOTTOM_MID, -40, 30);
+        lv_obj_align_to(vert, slider, LV_ALIGN_OUT_BOTTOM_MID, 0, 30);
+        lv_obj_align_to(bleu, slider, LV_ALIGN_OUT_BOTTOM_MID, 40, 30);
+
+        // Envoie les signaux PWM aux broches R, G, B pour afficher la couleur
+        analogWrite(R, red);    
+        analogWrite(G, green);    
+        analogWrite(B, blue); 
+
+        // Attente courte pour ralentir la vitesse d'animation
+        delay(20);
     }
 
-  int autosli = animation_step;
-  
-  char buf[8];
-  char r[8];
-  char g[8];
-  char b[8];
-
-  lv_snprintf(buf, sizeof(buf), "%d%%", autosli);
-  lv_label_set_text(slider_label, buf);
-  lv_obj_align_to(slider_label, slider, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
-
-
-  int red, blue, green;
-
-  red = redled(autosli);
-  blue = blueled(autosli);
-  green = greenled(autosli);
-
-
-  lv_snprintf(r, sizeof(r), "%d%%", red);
-  lv_snprintf(g, sizeof(g), "%d%%", green);
-  lv_snprintf(b, sizeof(b), "%d%%", blue);
-
-  lv_label_set_text(rouge, r);
-  lv_label_set_text(vert, g);
-  lv_label_set_text(bleu, b);
-  
-  lv_obj_align_to(rouge, slider, LV_ALIGN_OUT_BOTTOM_MID, -40, 30);
-  lv_obj_align_to(vert, slider, LV_ALIGN_OUT_BOTTOM_MID, 0, 30);
-  lv_obj_align_to(bleu, slider, LV_ALIGN_OUT_BOTTOM_MID, 40, 30);
-  //printf("R = %d, B = %d, G = %d\n", red, blue, green);
-
-  analogWrite(R, red);    
-  analogWrite(G, green);    
-  analogWrite(B, blue); 
-
-  delay(20);
-
-  }
-  
+    // Fonction obligatoire de LVGL à appeler régulièrement pour actualiser l’affichage
     lv_timer_handler();
-  
 
-// si je veux que la bande led change en fonction de l'ecran je dois recup la valeur donner mettre dans une autre variable et potentiellement metre en nombre 
-
-  // Inactif (pour mise en veille du processeur)
+    // Remarque :
+    // Si tu veux que la couleur change en fonction d’un autre paramètre (ex. luminosité de l’écran),
+    // tu peux ici récupérer la valeur du capteur ou d’un autre composant.
 }
+
 
 void myTask(void *pvParameters)
 {
